@@ -23,12 +23,12 @@
 
     const firebaseConfig = {
       apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
-    authDomain: "rewardly-go.firebaseapp.com",
-    projectId: "rewardly-go",
-    storageBucket: "rewardly-go.appspot.com",
-    messagingSenderId: "587297879139",
-    appId: "1:587297879139:web:50499dff5b83aa420a3456",
-    measurementId: "G-C3V2KQ8TWT"
+      authDomain: "rewardly-go.firebaseapp.com",
+      projectId: "rewardly-go",
+      storageBucket: "rewardly-go.appspot.com",
+      messagingSenderId: "587297879139",
+      appId: "1:587297879139:web:50499dff5b83aa420a3456",
+      measurementId: "G-C3V2KQ8TWT"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -45,6 +45,9 @@
         user = { id: "devtest123", first_name: "DevUser", username: "devuser" };
         console.log("Running in DEV mode with mock user", user);
       } else {
+        // Wait a moment for iOS to finish loading SDK
+        await new Promise(r => setTimeout(r, 100));
+
         console.log("Telegram object:", window.Telegram);
         console.log("Telegram.WebApp:", window.Telegram?.WebApp);
         console.log("Telegram.WebApp.initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
