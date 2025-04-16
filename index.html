@@ -1,113 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Daily Streak</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
-  <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
-    <h2 class="text-2xl font-bold mb-4">Daily Streak</h2>
-    <p class="text-lg" id="streak-info">Loading...</p>
-    <button id="claim-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Claim</button>
-  </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
+    authDomain: "rewardly-go.firebaseapp.com",
+    projectId: "rewardly-go",
+    storageBucket: "rewardly-go.appspot.com",
+    messagingSenderId: "587297879139",
+    appId: "1:587297879139:web:50499dff5b83aa420a3456",
+    measurementId: "G-C3V2KQ8TWT"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
-      authDomain: "rewardly-go.firebaseapp.com",
-      projectId: "rewardly-go",
-      storageBucket: "rewardly-go.appspot.com",
-      messagingSenderId: "587297879139",
-      appId: "1:587297879139:web:50499dff5b83aa420a3456",
-      measurementId: "G-C3V2KQ8TWT"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  async function initApp() {
+    const streakInfo = document.getElementById("streak-info");
+    const claimBtn = document.getElementById("claim-btn");
 
-    async function initApp() {
-      const streakInfo = document.getElementById("streak-info");
-      const claimBtn = document.getElementById("claim-btn");
-
-      if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
-        streakInfo.innerText = "This app must be used inside the Telegram app.";
-        claimBtn.style.display = "none";
-        return;
-      }
-
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-
-      const user = tg.initDataUnsafe.user;
-      const uid = user.id.toString();
-      const userRef = doc(db, "users", uid);
-
-      async function setupUser() {
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) {
-          await setDoc(userRef, {
-            name: user.first_name,
-            username: user.username || "",
-            coins: 0,
-            streakDay: 1,
-            lastClaimed: null,
-            tasks: {
-              twitter: false,
-              telegram: false,
-              discord: false,
-              youtube: false
-            }
-          });
-        }
-      }
-
-      async function loadStreak() {
-        const snap = await getDoc(userRef);
-        const data = snap.data();
-        const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
-        const today = new Date();
-
-        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
-          streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
-          claimBtn.disabled = false;
-          claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
-          claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
-        } else {
-          streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
-          claimBtn.disabled = true;
-          claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
-          claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
-        }
-      }
-
-      claimBtn.addEventListener("click", async () => {
-        const snap = await getDoc(userRef);
-        const data = snap.data();
-        const coinsToAdd = data.streakDay * 100;
-
-        await updateDoc(userRef, {
-          coins: data.coins + coinsToAdd,
-          streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
-          lastClaimed: Timestamp.now()
-        });
-
-        alert(`Claimed +${coinsToAdd} coins!`);
-        location.reload();
-      });
-
-      await setupUser();
-      await loadStreak();
+    // Check if the Telegram WebApp SDK is available
+    if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe) {
+      streakInfo.innerText = "Telegram WebApp SDK not detected. Please open this in the Telegram app.";
+      claimBtn.style.display = "none";
+      console.log("Telegram WebApp SDK not found");
+      return;
     }
 
-    window.addEventListener('DOMContentLoaded', initApp);
-  </script>
-</body>
-</html>
+    const tg = window.Telegram.WebApp;
+    console.log('Telegram WebApp:', tg); // Debugging log
+
+    tg.ready(); // Initialize Telegram WebApp SDK
+
+    const user = tg.initDataUnsafe.user;
+    console.log('Telegram User:', user); // Debugging log
+
+    if (!user) {
+      streakInfo.innerText = "Telegram login failed. Please open this in Telegram.";
+      claimBtn.style.display = "none";
+      return;
+    }
+
+    const uid = user.id.toString();
+    const userRef = doc(db, "users", uid);
+
+    async function setupUser() {
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          name: user.first_name,
+          username: user.username || "",
+          coins: 0,
+          streakDay: 1,
+          lastClaimed: null,
+          tasks: {
+            twitter: false,
+            telegram: false,
+            discord: false,
+            youtube: false
+          }
+        });
+      }
+    }
+
+    async function loadStreak() {
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
+      const today = new Date();
+
+      if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
+        streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
+        claimBtn.disabled = false;
+        claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
+        claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+      } else {
+        streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
+        claimBtn.disabled = true;
+        claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+        claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
+      }
+    }
+
+    claimBtn.addEventListener("click", async () => {
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      const coinsToAdd = data.streakDay * 100;
+
+      await updateDoc(userRef, {
+        coins: data.coins + coinsToAdd,
+        streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
+        lastClaimed: Timestamp.now()
+      });
+
+      alert(`Claimed +${coinsToAdd} coins!`);
+      location.reload();
+    });
+
+    await setupUser();
+    await loadStreak();
+  }
+
+  window.addEventListener('DOMContentLoaded', initApp);
+</script>
