@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Daily Streak</title>
-  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script> <!-- Add Telegram WebApp SDK -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
@@ -15,49 +17,77 @@
   </div>
 
   <script type="module">
-    // Handle the initialization of the app
-    async function initApp() {
+    // Firebase and Telegram WebApp setup
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
+      authDomain: "rewardly-go.firebaseapp.com",
+      projectId: "rewardly-go",
+      storageBucket: "rewardly-go.appspot.com",
+      messagingSenderId: "587297879139",
+      appId: "1:587297879139:web:50499dff5b83aa420a3456",
+      measurementId: "G-C3V2KQ8TWT"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.onload = async () => {
       const streakInfo = document.getElementById("streak-info");
       const claimBtn = document.getElementById("claim-btn");
 
-      const isDev = true;  // Set to true for testing without Telegram app
+      if (window.Telegram.WebApp) {
+        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
 
-      let user;
-      if (isDev) {
-        user = { id: "devtest123", first_name: "DevUser", username: "devuser" };
-        console.log("Running in DEV mode with mock user", user);
-      } else {
-        // Wait a moment for iOS to finish loading SDK
-        await new Promise(r => setTimeout(r, 100));
-
-        console.log("Telegram object:", window.Telegram);
-        console.log("Telegram.WebApp:", window.Telegram?.WebApp);
-        console.log("Telegram.WebApp.initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
-
-        if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
+        if (telegramUser) {
+          await setupUser(telegramUser);
+          loadStreak(telegramUser.id);
+        } else {
           streakInfo.innerText = "Please open this app inside Telegram to use the streak feature.";
           claimBtn.style.display = "none";
-          return;
         }
-
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        user = tg.initDataUnsafe.user;
+      } else {
+        streakInfo.innerText = "Telegram WebApp not detected. Open via Telegram.";
+        claimBtn.style.display = "none";
       }
+    };
 
-      // Mock user data for testing
-      const streakData = {
-        streakDay: 1,
-        coins: 0,
-        lastClaimed: null
-      };
+    async function setupUser(user) {
+      const userRef = doc(db, "users", user.id.toString());
+      const userSnap = await getDoc(userRef);
 
-      async function loadStreak() {
-        const lastClaimed = streakData.lastClaimed ? streakData.lastClaimed.toDateString() : null;
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          name: user.first_name,
+          username: user.username || "",
+          coins: 0,
+          streakDay: 1,
+          lastClaimed: null,
+          tasks: {
+            twitter: false,
+            telegram: false,
+            discord: false,
+            youtube: false
+          }
+        });
+      }
+    }
+
+    async function loadStreak(userId) {
+      const userRef = doc(db, "users", userId.toString());
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+
+      if (data) {
+        const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
         const today = new Date();
+        const streakInfo = document.getElementById("streak-info");
+        const claimBtn = document.getElementById("claim-btn");
 
-        if (!lastClaimed || lastClaimed !== today.toDateString()) {
-          streakInfo.innerText = `Day ${streakData.streakDay} - +${streakData.streakDay * 100} Coins`;
+        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
+          streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
           claimBtn.disabled = false;
           claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
           claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
@@ -67,24 +97,19 @@
           claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
           claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
         }
+
+        claimBtn.addEventListener("click", async () => {
+          const coinsToAdd = data.streakDay * 100;
+          await updateDoc(userRef, {
+            coins: data.coins + coinsToAdd,
+            streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
+            lastClaimed: firebase.firestore.Timestamp.now()
+          });
+          alert(`Claimed +${coinsToAdd} coins!`);
+          location.reload();
+        });
       }
-
-      claimBtn.addEventListener("click", async () => {
-        const coinsToAdd = streakData.streakDay * 100;
-
-        // Update mock user data
-        streakData.coins += coinsToAdd;
-        streakData.streakDay = streakData.streakDay >= 7 ? 1 : streakData.streakDay + 1;
-        streakData.lastClaimed = new Date();
-
-        alert(`Claimed +${coinsToAdd} coins!`);
-        location.reload();
-      });
-
-      await loadStreak();
     }
-
-    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
