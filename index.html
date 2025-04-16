@@ -39,26 +39,21 @@
       const claimBtn = document.getElementById("claim-btn");
 
       const isDev = false; // set to true for testing without Telegram app
-
       let user;
+
       if (isDev) {
         user = { id: "devtest123", first_name: "DevUser", username: "devuser" };
         console.log("Running in DEV mode with mock user", user);
       } else {
-        // Wait a moment for iOS to finish loading SDK
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 200));
 
-        console.log("Telegram object:", window.Telegram);
-        console.log("Telegram.WebApp:", window.Telegram?.WebApp);
-        console.log("Telegram.WebApp.initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
-
-        if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
+        const tg = window.Telegram?.WebApp;
+        if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
           streakInfo.innerText = "Please open this app inside Telegram to use the streak feature.";
           claimBtn.style.display = "none";
           return;
         }
 
-        const tg = window.Telegram.WebApp;
         tg.ready();
         user = tg.initDataUnsafe.user;
       }
