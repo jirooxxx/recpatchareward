@@ -17,36 +17,42 @@
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
     <h2 class="text-2xl font-bold mb-4" id="welcome-message">Loading...</h2>
+    <p id="debug-info" class="text-sm text-gray-500"></p>
   </div>
 
   <script>
-    console.log("Checking if Telegram WebApp SDK is available");
+    const debugInfo = document.getElementById('debug-info');
 
-    // Initialize the Telegram WebApp SDK if available
+    function log(message) {
+      console.log(message);
+      debugInfo.innerText = message;
+    }
+
+    log("Initializing Telegram WebApp SDK...");
+
+    // Check if Telegram WebApp SDK is available
     if (window.Telegram && window.Telegram.WebApp) {
-      console.log("Telegram WebApp SDK detected");
+      log("Telegram WebApp SDK detected");
 
       const tg = window.Telegram.WebApp;
-      tg.ready(); // Mark the WebApp as ready to use
+      tg.ready(); // Initialize the WebApp context
 
-      const user = tg.initDataUnsafe.user; // Get user info from Telegram
-      console.log('User Info:', user);
+      const user = tg.initDataUnsafe.user; // Get user data from Telegram
+      log('User Info: ' + JSON.stringify(user));
 
       // Elements
       const welcomeMessage = document.getElementById('welcome-message');
 
-      // Check if user is valid
-      if (!user) {
-        console.log("No user data found.");
-        welcomeMessage.innerText = "Please open this app inside Telegram to use the features.";
-        return;
+      // If user data is available
+      if (user) {
+        welcomeMessage.innerText = `Welcome, ${user.first_name} (@${user.username})!`;
+      } else {
+        log("User data is missing");
+        welcomeMessage.innerText = "User data not found. Please open this inside Telegram.";
       }
 
-      // Greet the user with their username
-      welcomeMessage.innerText = `Welcome, ${user.first_name} (@${user.username})!`;
-
     } else {
-      console.log("Telegram WebApp SDK not detected");
+      log("Telegram WebApp SDK not detected. Please open this app inside Telegram.");
       alert("Please open this app inside Telegram.");
     }
   </script>
