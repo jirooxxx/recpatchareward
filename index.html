@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Telegram WebApp Test</title>
+  <title>Telegram Mini App Test</title>
   <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script> <!-- Telegram WebApp SDK -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
-    <h2 class="text-2xl font-bold mb-4">Telegram WebApp Test</h2>
+    <h2 class="text-2xl font-bold mb-4">Telegram Mini App Test</h2>
     <p class="text-lg" id="streak-info">Loading...</p>
     <button id="claim-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Claim</button>
   </div>
@@ -19,18 +19,22 @@
       const streakInfo = document.getElementById("streak-info");
       const claimBtn = document.getElementById("claim-btn");
 
-      console.log("Checking if Telegram WebApp is available...");
-      
-      if (window.Telegram.WebApp) {
+      console.log("Initializing Telegram WebApp...");
+
+      if (window.Telegram && window.Telegram.WebApp) {
         console.log("Telegram WebApp found!");
 
-        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-        console.log("Telegram User:", telegramUser);
+        // Delay to ensure WebApp is fully loaded
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay to allow SDK to load fully
 
-        if (telegramUser) {
+        if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+          const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+          console.log("Telegram User:", telegramUser);
+
           streakInfo.innerText = `Hello, ${telegramUser.first_name}!`;
           claimBtn.style.display = "block";
         } else {
+          console.log("User not detected or Telegram login failed.");
           streakInfo.innerText = "Telegram login failed. Please open this in Telegram.";
           claimBtn.style.display = "none";
         }
