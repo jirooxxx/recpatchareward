@@ -3,47 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Telegram Mini App Test</title>
-  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script> <!-- Telegram WebApp SDK -->
+  <title>Daily Streak</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
+  
+  <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+    }
+  </style>
 </head>
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
-    <h2 class="text-2xl font-bold mb-4">Telegram Mini App Test</h2>
+    <h2 class="text-2xl font-bold mb-4">Daily Streak</h2>
     <p class="text-lg" id="streak-info">Loading...</p>
     <button id="claim-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full">Claim</button>
   </div>
 
-  <script type="module">
-    window.onload = async () => {
-      const streakInfo = document.getElementById("streak-info");
-      const claimBtn = document.getElementById("claim-btn");
+  <script>
+    // Initialize the Telegram WebApp SDK if available
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready(); // Mark the WebApp as ready to use
 
-      console.log("Initializing Telegram WebApp...");
+      const user = tg.initDataUnsafe.user; // Get user info from Telegram
+      console.log('User Info:', user);
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        console.log("Telegram WebApp found!");
+      // Elements
+      const streakInfo = document.getElementById('streak-info');
+      const claimBtn = document.getElementById('claim-btn');
 
-        // Delay to ensure WebApp is fully loaded
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay to allow SDK to load fully
-
-        if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-          const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-          console.log("Telegram User:", telegramUser);
-
-          streakInfo.innerText = `Hello, ${telegramUser.first_name}!`;
-          claimBtn.style.display = "block";
-        } else {
-          console.log("User not detected or Telegram login failed.");
-          streakInfo.innerText = "Telegram login failed. Please open this in Telegram.";
-          claimBtn.style.display = "none";
-        }
-      } else {
-        console.log("Telegram WebApp not detected.");
-        streakInfo.innerText = "Telegram WebApp not detected. Open via Telegram.";
+      // Check if user is valid
+      if (!user) {
+        streakInfo.innerText = "Please open this app inside Telegram to use the streak feature.";
         claimBtn.style.display = "none";
+        return;
       }
-    };
+
+      // Simulated database (For this example, we're just using a simple object)
+      let userData = {
+        id: user.id,
+        name: user.first_name,
+        streakDay: 1,
+        coins: 0,
+        lastClaimed: null
+      };
+
+      // Display streak information
+      function loadStreak() {
+        const today = new Date();
+        const lastClaimed = userData.lastClaimed ? new Date(userData.lastClaimed) : null;
+
+        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
+          streakInfo.innerText = `Day ${userData.streakDay} - +${userData.streakDay * 100} Coins`;
+          claimBtn.disabled = false;
+          claimBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+          claimBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        } else {
+          streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
+          claimBtn.disabled = true;
+          claimBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+          claimBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        }
+      }
+
+      // Claim coins and update streak
+      claimBtn.addEventListener('click', async () => {
+        const coinsToAdd = userData.streakDay * 100;
+        userData.coins += coinsToAdd;
+        userData.lastClaimed = new Date().toISOString();
+        userData.streakDay = userData.streakDay >= 7 ? 1 : userData.streakDay + 1; // Reset streak after 7 days
+
+        alert(`Claimed +${coinsToAdd} coins!`);
+        loadStreak(); // Reload streak info
+      });
+
+      // Load user streak
+      loadStreak();
+    } else {
+      alert("Please open this app inside Telegram.");
+    }
   </script>
 </body>
 </html>
