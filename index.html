@@ -1,105 +1,122 @@
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram WebApp</title>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
-    authDomain: "rewardly-go.firebaseapp.com",
-    projectId: "rewardly-go",
-    storageBucket: "rewardly-go.appspot.com",
-    messagingSenderId: "587297879139",
-    appId: "1:587297879139:web:50499dff5b83aa420a3456",
-    measurementId: "G-C3V2KQ8TWT"
-  };
+  <!-- Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  <!-- Telegram WebApp SDK -->
+  <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
 
-  async function initApp() {
-    const streakInfo = document.getElementById("streak-info");
-    const claimBtn = document.getElementById("claim-btn");
+</head>
+<body>
+  <h1>Testing Telegram WebApp and Firebase</h1>
+  <div>
+    <p id="streak-info">Loading...</p>
+    <button id="claim-btn">Claim</button>
+  </div>
 
-    // Check if the Telegram WebApp SDK is available
-    if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe) {
-      streakInfo.innerText = "Telegram WebApp SDK not detected. Please open this in the Telegram app.";
-      claimBtn.style.display = "none";
-      console.log("Telegram WebApp SDK not found");
-      return;
-    }
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
+      authDomain: "rewardly-go.firebaseapp.com",
+      projectId: "rewardly-go",
+      storageBucket: "rewardly-go.appspot.com",
+      messagingSenderId: "587297879139",
+      appId: "1:587297879139:web:50499dff5b83aa420a3456",
+      measurementId: "G-C3V2KQ8TWT"
+    };
 
-    const tg = window.Telegram.WebApp;
-    console.log('Telegram WebApp:', tg); // Debugging log
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    tg.ready(); // Initialize Telegram WebApp SDK
+    async function initApp() {
+      const streakInfo = document.getElementById("streak-info");
+      const claimBtn = document.getElementById("claim-btn");
 
-    const user = tg.initDataUnsafe.user;
-    console.log('Telegram User:', user); // Debugging log
+      // Check if Telegram WebApp SDK is available
+      if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe) {
+        streakInfo.innerText = "Telegram WebApp SDK not detected. Please open this in the Telegram app.";
+        claimBtn.style.display = "none";
+        return;
+      }
 
-    if (!user) {
-      streakInfo.innerText = "Telegram login failed. Please open this in Telegram.";
-      claimBtn.style.display = "none";
-      return;
-    }
+      const tg = window.Telegram.WebApp;
+      tg.ready(); // Initialize Telegram WebApp SDK
 
-    const uid = user.id.toString();
-    const userRef = doc(db, "users", uid);
+      const user = tg.initDataUnsafe.user;
+      if (!user) {
+        streakInfo.innerText = "Telegram login failed. Please open this in Telegram.";
+        claimBtn.style.display = "none";
+        return;
+      }
 
-    async function setupUser() {
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        await setDoc(userRef, {
-          name: user.first_name,
-          username: user.username || "",
-          coins: 0,
-          streakDay: 1,
-          lastClaimed: null,
-          tasks: {
-            twitter: false,
-            telegram: false,
-            discord: false,
-            youtube: false
-          }
+      const uid = user.id.toString();
+      const userRef = doc(db, "users", uid);
+
+      async function setupUser() {
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            name: user.first_name,
+            username: user.username || "",
+            coins: 0,
+            streakDay: 1,
+            lastClaimed: null,
+            tasks: {
+              twitter: false,
+              telegram: false,
+              discord: false,
+              youtube: false
+            }
+          });
+        }
+      }
+
+      async function loadStreak() {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
+        const today = new Date();
+
+        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
+          streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
+          claimBtn.disabled = false;
+        } else {
+          streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
+          claimBtn.disabled = true;
+        }
+      }
+
+      claimBtn.addEventListener("click", async () => {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        const coinsToAdd = data.streakDay * 100;
+
+        await updateDoc(userRef, {
+          coins: data.coins + coinsToAdd,
+          streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
+          lastClaimed: Timestamp.now()
         });
-      }
-    }
 
-    async function loadStreak() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
-      const today = new Date();
-
-      if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
-        streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
-        claimBtn.disabled = false;
-        claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
-        claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
-      } else {
-        streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
-        claimBtn.disabled = true;
-        claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
-        claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
-      }
-    }
-
-    claimBtn.addEventListener("click", async () => {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      const coinsToAdd = data.streakDay * 100;
-
-      await updateDoc(userRef, {
-        coins: data.coins + coinsToAdd,
-        streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
-        lastClaimed: Timestamp.now()
+        alert(`Claimed +${coinsToAdd} coins!`);
+        location.reload();
       });
 
-      alert(`Claimed +${coinsToAdd} coins!`);
-      location.reload();
-    });
+      await setupUser();
+      await loadStreak();
+    }
 
-    await setupUser();
-    await loadStreak();
-  }
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
 
-  window.addEventListener('DOMContentLoaded', initApp);
-</script>
+</body>
+</html>
