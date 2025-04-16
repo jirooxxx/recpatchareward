@@ -1,61 +1,29 @@
-// Import Firebase scripts in your HTML head before this file
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+import { useEffect, useState } from "react";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const WelcomePage = () => {
+  const [user, setUser] = useState(null);
 
-// Firebase config - REPLACE WITH YOUR OWN
-const firebaseConfig = {
-    apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
-    authDomain: "rewardly-go.firebaseapp.com",
-    projectId: "rewardly-go",
-    storageBucket: "rewardly-go.appspot.com",
-    messagingSenderId: "587297879139",
-    appId: "1:587297879139:web:50499dff5b83aa420a3456",
-    measurementId: "G-C3V2KQ8TWT"
-};
+  useEffect(() => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Get Telegram User
-let telegramUser = null;
-
-window.onload = async () => {
-  if (window.Telegram.WebApp) {
-    telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-
-    if (telegramUser) {
-      await setupUser(telegramUser);
-    } else {
-      alert("Telegram login failed. Please open this in Telegram.");
+      const userData = tg.initDataUnsafe.user;
+      setUser(userData);
     }
-  } else {
-    alert("Telegram WebApp not detected. Open via Telegram.");
-  }
+  }, []);
+
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-blue-100">
+      <div className="bg-white p-6 rounded-xl shadow-md text-center w-11/12 max-w-md">
+        {user ? (
+          <h2 className="text-2xl font-bold mb-4">Welcome, {user.first_name}!</h2>
+        ) : (
+          <h2 className="text-2xl font-bold mb-4">Loading...</h2>
+        )}
+      </div>
+    </div>
+  );
 };
 
-// Create or update user in Firestore
-async function setupUser(user) {
-  const userRef = doc(db, "users", user.id.toString());
-  const userSnap = await getDoc(userRef);
-
-  if (!userSnap.exists()) {
-    await setDoc(userRef, {
-      name: user.first_name,
-      username: user.username || "",
-      coins: 0,
-      streakDay: 1,
-      lastClaimed: null,
-      tasks: {
-        twitter: false,
-        telegram: false,
-        discord: false,
-        youtube: false
-      }
-    });
-  }
-}
-
-export { db, telegramUser };
+export default WelcomePage;
