@@ -22,12 +22,13 @@
     import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
+      apiKey: "AIzaSyAEzZYKQNqQLteWsZmDJKq0sYVhvG6YE9E",
+    authDomain: "rewardly-go.firebaseapp.com",
+    projectId: "rewardly-go",
+    storageBucket: "rewardly-go.appspot.com",
+    messagingSenderId: "587297879139",
+    appId: "1:587297879139:web:50499dff5b83aa420a3456",
+    measurementId: "G-C3V2KQ8TWT"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -37,78 +38,86 @@
       const streakInfo = document.getElementById("streak-info");
       const claimBtn = document.getElementById("claim-btn");
 
-      try {
+      const isDev = false; // set to true for testing without Telegram app
+
+      let user;
+      if (isDev) {
+        user = { id: "devtest123", first_name: "DevUser", username: "devuser" };
+        console.log("Running in DEV mode with mock user", user);
+      } else {
+        console.log("Telegram object:", window.Telegram);
+        console.log("Telegram.WebApp:", window.Telegram?.WebApp);
+        console.log("Telegram.WebApp.initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
+
         if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
-          throw new Error("Telegram WebApp environment not detected.");
+          streakInfo.innerText = "Please open this app inside Telegram to use the streak feature.";
+          claimBtn.style.display = "none";
+          return;
         }
 
         const tg = window.Telegram.WebApp;
         tg.ready();
+        user = tg.initDataUnsafe.user;
+      }
 
-        const user = tg.initDataUnsafe.user;
-        const uid = user.id.toString();
-        const userRef = doc(db, "users", uid);
+      const uid = user.id.toString();
+      const userRef = doc(db, "users", uid);
 
-        async function setupUser() {
-          const snap = await getDoc(userRef);
-          if (!snap.exists()) {
-            await setDoc(userRef, {
-              name: user.first_name,
-              username: user.username || "",
-              coins: 0,
-              streakDay: 1,
-              lastClaimed: null,
-              tasks: {
-                twitter: false,
-                telegram: false,
-                discord: false,
-                youtube: false
-              }
-            });
-          }
-        }
-
-        async function loadStreak() {
-          const snap = await getDoc(userRef);
-          const data = snap.data();
-          const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
-          const today = new Date();
-
-          if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
-            streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
-            claimBtn.disabled = false;
-            claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
-            claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
-          } else {
-            streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
-            claimBtn.disabled = true;
-            claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
-            claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
-          }
-        }
-
-        claimBtn.addEventListener("click", async () => {
-          const snap = await getDoc(userRef);
-          const data = snap.data();
-          const coinsToAdd = data.streakDay * 100;
-
-          await updateDoc(userRef, {
-            coins: data.coins + coinsToAdd,
-            streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
-            lastClaimed: Timestamp.now()
+      async function setupUser() {
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            name: user.first_name,
+            username: user.username || "",
+            coins: 0,
+            streakDay: 1,
+            lastClaimed: null,
+            tasks: {
+              twitter: false,
+              telegram: false,
+              discord: false,
+              youtube: false
+            }
           });
+        }
+      }
 
-          alert(`Claimed +${coinsToAdd} coins!`);
-          location.reload();
+      async function loadStreak() {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        const lastClaimed = data.lastClaimed ? data.lastClaimed.toDate() : null;
+        const today = new Date();
+
+        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
+          streakInfo.innerText = `Day ${data.streakDay} - +${data.streakDay * 100} Coins`;
+          claimBtn.disabled = false;
+          claimBtn.classList.remove("bg-gray-400", "cursor-not-allowed");
+          claimBtn.classList.add("bg-blue-500", "hover:bg-blue-600");
+        } else {
+          streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
+          claimBtn.disabled = true;
+          claimBtn.classList.remove("bg-blue-500", "hover:bg-blue-600");
+          claimBtn.classList.add("bg-gray-400", "cursor-not-allowed");
+        }
+      }
+
+      claimBtn.addEventListener("click", async () => {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        const coinsToAdd = data.streakDay * 100;
+
+        await updateDoc(userRef, {
+          coins: data.coins + coinsToAdd,
+          streakDay: data.streakDay >= 7 ? 1 : data.streakDay + 1,
+          lastClaimed: Timestamp.now()
         });
 
-        await setupUser();
-        await loadStreak();
-      } catch (error) {
-        console.error("Initialization error:", error);
-        streakInfo.innerText = "Please open this app inside Telegram to use the streak feature.";
-        claimBtn.style.display = "none";
-      }
+        alert(`Claimed +${coinsToAdd} coins!`);
+        location.reload();
+      });
+
+      await setupUser();
+      await loadStreak();
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
