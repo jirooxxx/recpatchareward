@@ -4,15 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Welcome to the Telegram Mini App</title>
-
+  
   <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-    }
-  </style>
 </head>
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
@@ -21,27 +15,21 @@
   </div>
 
   <script>
-    const welcomeMessage = document.getElementById('welcome-message');
-
-    // Wait for the Telegram WebApp SDK to load
+    // Check if we are inside Telegram
     if (window.Telegram && window.Telegram.WebApp) {
       const tg = window.Telegram.WebApp;
-      tg.ready();  // Initialize the WebApp context
 
-      // Get the user data from the Telegram WebApp SDK
+      tg.ready();  // Initialize the WebApp context
       const user = tg.initDataUnsafe.user;
 
       if (user) {
-        const userName = user.first_name; // Getting the user's first name
-
-        // Display a personalized welcome message
-        welcomeMessage.innerText = `Welcome, ${userName}!`;
+        const userName = user.first_name;  // Get user's first name
+        document.getElementById('welcome-message').innerText = `Welcome, ${userName}!`;  // Display welcome message
       } else {
-        welcomeMessage.innerText = "Welcome, Guest!";
+        document.getElementById('welcome-message').innerText = "User data not found.";
       }
     } else {
-      // Fallback if the WebApp SDK is not detected
-      welcomeMessage.innerText = "Please open this app inside Telegram.";
+      document.getElementById('welcome-message').innerText = "Please open this app inside Telegram.";
     }
   </script>
 </body>
