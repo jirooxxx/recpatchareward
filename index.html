@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Membership Verification</title>
+  <title>Welcome to the Telegram Mini App</title>
 
   <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -16,67 +16,32 @@
 </head>
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
-    <h2 class="text-2xl font-bold mb-4" id="status-message">Loading...</h2>
-    <p id="membership-status" class="text-lg text-gray-500">Checking membership...</p>
+    <h2 class="text-2xl font-bold mb-4" id="welcome-message">Loading...</h2>
+    <p class="text-lg text-gray-500">Please wait...</p>
   </div>
 
   <script>
-    const statusMessage = document.getElementById('status-message');
-    const membershipStatus = document.getElementById('membership-status');
+    const welcomeMessage = document.getElementById('welcome-message');
 
-    function log(message) {
-      console.log(message);
-    }
-
-    log("Initializing Telegram WebApp SDK...");
-
-    // Check if Telegram WebApp SDK is available
+    // Wait for the Telegram WebApp SDK to load
     if (window.Telegram && window.Telegram.WebApp) {
-      log("Telegram WebApp SDK detected");
-
       const tg = window.Telegram.WebApp;
-      tg.ready(); // Initialize the WebApp context
+      tg.ready();  // Initialize the WebApp context
 
-      const user = tg.initDataUnsafe.user; // Get user data from Telegram
-      log('User Info: ' + JSON.stringify(user));
+      // Get the user data from the Telegram WebApp SDK
+      const user = tg.initDataUnsafe.user;
 
-      // Check if user data exists
       if (user) {
-        statusMessage.innerText = `Hello, ${user.first_name}!`;
+        const userName = user.first_name; // Getting the user's first name
 
-        // Call your backend to verify membership
-        checkMembership(user.id);
+        // Display a personalized welcome message
+        welcomeMessage.innerText = `Welcome, ${userName}!`;
       } else {
-        log("User data is missing");
-        statusMessage.innerText = "User data not found. Please open this inside Telegram.";
+        welcomeMessage.innerText = "Welcome, Guest!";
       }
     } else {
-      log("Telegram WebApp SDK not detected. Please open this app inside Telegram.");
-      alert("Please open this app inside Telegram.");
-    }
-
-    // Function to call the backend to check membership status
-    async function checkMembership(userId) {
-      try {
-        const response = await fetch('https://your-backend-api.com/verify-membership', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: userId }),
-        });
-
-        const data = await response.json();
-
-        if (data.isMember) {
-          membershipStatus.innerText = "You are a verified member!";
-        } else {
-          membershipStatus.innerText = "You are not a member. Please sign up.";
-        }
-      } catch (error) {
-        console.error('Error checking membership:', error);
-        membershipStatus.innerText = "An error occurred while checking membership.";
-      }
+      // Fallback if the WebApp SDK is not detected
+      welcomeMessage.innerText = "Please open this app inside Telegram.";
     }
   </script>
 </body>
