@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to Telegram Mini App</title>
+  <title>Telegram Mini App</title>
 
-  <!-- Telegram WebApp SDK -->
   <script src="https://unpkg.com/@telegram-web-apps/webapp@1.0.0/dist/index.js"></script>
-  
-  <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
   <style>
@@ -20,11 +17,10 @@
 <body class="bg-blue-100 min-h-screen flex flex-col justify-center items-center">
   <div class="bg-white rounded-xl p-6 shadow-md text-center w-11/12 max-w-md">
     <h2 class="text-2xl font-bold mb-4" id="welcome-message">Loading...</h2>
-    <p class="text-lg" id="streak-info">Welcome to the app! Please wait...</p>
   </div>
 
   <script>
-    console.log("Checking if the Telegram WebApp SDK is available");
+    console.log("Checking if Telegram WebApp SDK is available");
 
     // Initialize the Telegram WebApp SDK if available
     if (window.Telegram && window.Telegram.WebApp) {
@@ -38,44 +34,17 @@
 
       // Elements
       const welcomeMessage = document.getElementById('welcome-message');
-      const streakInfo = document.getElementById('streak-info');
 
       // Check if user is valid
       if (!user) {
         console.log("No user data found.");
         welcomeMessage.innerText = "Please open this app inside Telegram to use the features.";
-        streakInfo.innerText = "";
         return;
       }
 
       // Greet the user with their username
       welcomeMessage.innerText = `Welcome, ${user.first_name} (@${user.username})!`;
 
-      // Simulated database (For this example, we're just using a simple object)
-      let userData = {
-        id: user.id,
-        name: user.first_name,
-        streakDay: 1,
-        coins: 0,
-        lastClaimed: null
-      };
-
-      // Display streak information
-      function loadStreak() {
-        console.log("Loading streak data");
-
-        const today = new Date();
-        const lastClaimed = userData.lastClaimed ? new Date(userData.lastClaimed) : null;
-
-        if (!lastClaimed || lastClaimed.toDateString() !== today.toDateString()) {
-          streakInfo.innerText = `Day ${userData.streakDay} - +${userData.streakDay * 100} Coins`;
-        } else {
-          streakInfo.innerText = `Already claimed today! Come back tomorrow.`;
-        }
-      }
-
-      // Load user streak
-      loadStreak();
     } else {
       console.log("Telegram WebApp SDK not detected");
       alert("Please open this app inside Telegram.");
